@@ -1,12 +1,17 @@
 const express = require('express');
-const { graphqlHTTP} = require('express-graphql');
-const { buildSchema } = require('graphql');
+const {graphqlHTTP} = require('express-graphql');
+const {buildSchema} = require('graphql');
 
 // GraphQL schema
 const schema = buildSchema(`
     type Query {
         course(id: Int!): Course
         courses(topic: String): [Course]
+        coursesByTitle(title: String!): [Course]
+    },
+    type Mutation {
+        updateCourseTopic(id: Int!, topic: String!): Course
+        addCourse(id: Int!, title: String, author: String, description: String, topic: String, url: String): [Course]
     },
     type Course {
         id: Int
@@ -45,14 +50,14 @@ const coursesData = [
     }
 ]
 
-const getCourse = function(args) {
+const getCourse = function (args) {
     const id = args.id;
     return coursesData.filter(course => {
         return course.id === id;
     })[0];
 }
 
-const getCourses = function(args) {
+const getCourses = function (args) {
     if (args.topic) {
         const topic = args.topic;
         return coursesData.filter(course => course.topic === topic);
@@ -61,9 +66,39 @@ const getCourses = function(args) {
     }
 }
 
+const getCoursesByTitle = function (args) {
+    const queryTitle = args.title;
+    return coursesData.filter(course => course.title.includes(queryTitle));
+}
+
+const updateCourseTopic = function ({id, topic}) {
+    coursesData.map(course => {
+        if (course.id === id) {
+            course.topic = topic;
+            return course;
+        }
+    });
+    return coursesData.filter(course => course.id === id) [0];
+}
+
+const addCourse = function (args) {
+    const newCourse = {
+        "title": args.title,
+        "author": args.author,
+        "description": args.description,
+        "topic": args.topic,
+        "url": args.url
+    }
+    coursesData.push(newCourse)
+    return coursesData;
+}
+
 const root = {
     course: getCourse,
-    courses: getCourses
+    courses: getCourses,
+    coursesByTitle: getCoursesByTitle,
+    updateCourseTopic: updateCourseTopic,
+    addCourse: addCourse
 };
 
 // Create an express server and a GraphQL endpoint
